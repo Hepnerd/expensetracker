@@ -3,7 +3,6 @@ from tkinter import ttk
 from tkinter import filedialog
 import csv
 import sys, os
-import csv
 import datetime
 import re
 import pandas as pd
