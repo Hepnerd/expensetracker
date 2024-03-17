@@ -169,9 +169,17 @@ style.theme_use("forest-dark")
 
 root.geometry("1600x600")
 
-#TODO: Insert data
-#Insert button
-#Choose files to insert
+#TODO: 
+# Auto refresh table
+# Filter by fields
+# Edit data
+# Insert data
+# Tabs for income, debt, etc
+# Custom dashboard - sql queries to build graphs
+# Custom import rules
+# Settings saved in CSV
+# Budget tracker
+
 insert_data = tk.Button(root, text="Insert transactions", command=insert_transactions)
 insert_data.pack(padx=20, pady=10)
 
