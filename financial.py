@@ -21,7 +21,7 @@ def read_bank_csv_file(file_path):
     return data
 
 def remove_duplicates_from_final(output_filename):
-    location = "output/"
+    location = "database/"
     toclean = pd.read_csv(output_filename)
     deduped = toclean.drop_duplicates(['Date','Transaction','Description','transactionType'])
     deduped.to_csv(location + "transactions.csv", index=False)
@@ -113,6 +113,7 @@ def process_bank_csv_files(output_filename):
         for item in transactionArray:
             splititem = item.split(",")
             writer.writerow([[splititem[0]], [splititem[1]], splititem[2], splititem[3], splititem[4], splititem[5]])
+    refreshTransactionTable(TRANSACTION_PATH)
 
 # Function to sort the Treeview by column
 def sort_treeview(tree, col, descending):
@@ -132,7 +133,7 @@ def transactionFileIntoList(fileName):
         print("Ah dang")
 
 def insert_transactions():
-    output_filename = "output/transactions.csv"
+    output_filename = "database/transactions.csv"
     process_bank_csv_files(output_filename)
     remove_duplicates_from_final(output_filename)
 
@@ -147,16 +148,31 @@ def create_transactions_file_if_not_exist(output_filename):
 def extractFirstFromList(lst):
     return [item[0] for item in lst]
 
+def refreshTransactionTable(transactionList):
+    header = next(transactionList)  # Read the header row
+    tree.delete(*tree.get_children())  # Clear the current data
+    for i in tree.get_children():
+        tree.delete(i)
+
+    tree["columns"] = header
+    for col in header:
+        tree.heading(col, text=col, command=lambda c=col: sort_treeview(tree, c, False))
+        tree.column(col, width=200)
+
+    for row in transactionList:
+        tree.insert("", "end", values=row)
+
 # def new_iterable_list(TRANSACTION_PATH):
 #     global transactionList
 #     transactionList = iter(transactionFileIntoList(TRANSACTION_PATH))
 
-TRANSACTION_PATH = "output/transactions.csv"
+TRANSACTION_PATH = "database/transactions.csv"
 
 create_transactions_file_if_not_exist(TRANSACTION_PATH)
 
 transactionReference = transactionFileIntoList(TRANSACTION_PATH)
-transactionList = iter(transactionFileIntoList(TRANSACTION_PATH))
+transactionList = iter(transactionReference)
+
 # transactionIterable = iter(transactionList)
 
 root = tk.Tk()
@@ -183,9 +199,11 @@ root.title("Hepnerd Transaction Viewer")
 # style.theme_use("forest-dark")
 
 root.geometry("2000x1000")
+root.attributes('-zoomed', True)
 
 #TODO: 
 # Auto refresh table
+    # Only refresh a list so we aren't reading the file each time
 # Filter by fields
 # Edit data
 # Insert data
@@ -195,7 +213,7 @@ root.geometry("2000x1000")
 # Settings saved in CSV
 # Budget tracker
 
-print(set(extractFirstFromList(transactionReference)))
+#print(set(extractFirstFromList(transactionReference)))
 
 combo_list = (list(set(extractFirstFromList(transactionReference))))
 
@@ -225,16 +243,7 @@ treeScroll.pack(side ='right', fill ='y')
 tree = ttk.Treeview(treeFrame, show="headings", height=30, yscrollcommand=treeScroll.set)
 tree.pack(fill="both", expand=True)
 
-header = next(transactionList)  # Read the header row
-tree.delete(*tree.get_children())  # Clear the current data
-
-tree["columns"] = header
-for col in header:
-    tree.heading(col, text=col, command=lambda c=col: sort_treeview(tree, c, False))
-    tree.column(col, width=200)
-
-for row in transactionList:
-    tree.insert("", "end", values=row)
+refreshTransactionTable(transactionList)
 
 treeScroll.config(command=tree.yview)
  
