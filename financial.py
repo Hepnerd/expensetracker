@@ -104,6 +104,15 @@ def process_bank_csv_files(output_filename):
             bank = "MINT"
         
         transactionArray.insert(1, "{0},{1},{2},{3},{4},{5}".format(bank,transactionDate,transaction,description,category,transactionType))
+        transactionFiller = {'Bank': bank, 'Date': transactionDate, 'Transaction': str(transaction), 'Description': description, 'Category': category, 'transactionType': transactionType}
+        # print(transactionFiller)
+        # print("break")
+        # print(transactionReference)
+        if transactionFiller not in transactionReference:
+            transactionReference.insert(0, transactionFiller)
+            # print("Record Inserted")
+        # else:
+        #     print("Duplicate Ignored")
     # Remove duplicates
     transactionArray = list(set(transactionArray))
     
@@ -112,8 +121,9 @@ def process_bank_csv_files(output_filename):
         writer = csv.writer(outfile)
         for item in transactionArray:
             splititem = item.split(",")
-            writer.writerow([[splititem[0]], [splititem[1]], splititem[2], splititem[3], splititem[4], splititem[5]])
-    refreshTransactionTable(TRANSACTION_PATH)
+            writer.writerow([splititem[0], splititem[1], splititem[2], splititem[3], splititem[4], splititem[5]])
+    refreshTransactionTable(transactionReference)
+    # print("Table refreshed")
 
 # Function to sort the Treeview by column
 def sort_treeview(tree, col, descending):
@@ -126,8 +136,11 @@ def sort_treeview(tree, col, descending):
 def transactionFileIntoList(fileName):
     try:
         with open(fileName, 'r', newline='') as f:
-            reader = csv.reader(f)
-            data = [tuple(row) for row in reader]
+            # reader = csv.reader(f)
+            reader = csv.DictReader(f, delimiter=',')
+            next(reader, None)
+            # data = [tuple(row) for row in reader]
+            data = list(reader)
         return data
     except Exception as e:
         print("Ah dang")
@@ -146,10 +159,17 @@ def create_transactions_file_if_not_exist(output_filename):
                         writer.writerow(fields)
 
 def extractFirstFromList(lst):
-    return [item[0] for item in lst]
+    return [item['Bank'] for item in lst]
+
+def extractSecondFromList(lst):
+    return [item['Category'] for item in lst]
 
 def refreshTransactionTable(transactionList):
-    header = next(transactionList)  # Read the header row
+    print(len(transactionList))
+    listCount = ttk.Label(treeFrame, text="Number of Records:\t" + str(len(transactionList)))
+    listCount.pack()
+    # header = next(transactionList)  # Read the header row
+    header = ("Bank", "Date", "Transaction", "Description", "Category", "Transaction Type")
     tree.delete(*tree.get_children())  # Clear the current data
     for i in tree.get_children():
         tree.delete(i)
@@ -160,7 +180,13 @@ def refreshTransactionTable(transactionList):
         tree.column(col, width=200)
 
     for row in transactionList:
-        tree.insert("", "end", values=row)
+        Bank = row['Bank']
+        Date = row['Date']
+        Transaction = row['Transaction']
+        Description = row['Description']
+        Category = row['Category']
+        transactionType = row['transactionType']
+        tree.insert("", "end", values=(Bank, Date, Transaction, Description, Category, transactionType))
 
 # def new_iterable_list(TRANSACTION_PATH):
 #     global transactionList
@@ -171,7 +197,7 @@ TRANSACTION_PATH = "database/transactions.csv"
 create_transactions_file_if_not_exist(TRANSACTION_PATH)
 
 transactionReference = transactionFileIntoList(TRANSACTION_PATH)
-transactionList = iter(transactionReference)
+# transactionList = iter(transactionReference)
 
 # transactionIterable = iter(transactionList)
 
@@ -188,7 +214,7 @@ income.pack()
 transactionsTable = ttk.Frame(transactions)
 transactionsTable.grid(row=0, column=1, padx=10, pady=10)
 
-transactionEdit = ttk.LabelFrame(transactions, text="Edit")
+transactionEdit = ttk.LabelFrame(transactions, text="Transaction Interact")
 transactionEdit.grid(row=0, column=0, padx=10)
 
 root.title("Hepnerd Transaction Viewer")
@@ -198,7 +224,7 @@ root.title("Hepnerd Transaction Viewer")
 # root.tk.call("source", "forest-dark.tcl")
 # style.theme_use("forest-dark")
 
-root.geometry("2000x1000")
+root.geometry("1800x800")
 root.attributes('-zoomed', True)
 
 #TODO: 
@@ -212,25 +238,58 @@ root.attributes('-zoomed', True)
 # Custom import rules
 # Settings saved in CSV
 # Budget tracker
+# Fix counter label
 
-#print(set(extractFirstFromList(transactionReference)))
+bank_combo_list = (list(set(extractFirstFromList(transactionReference))))
+category_combo_list = (list(set(extractSecondFromList(transactionReference))))
 
-combo_list = (list(set(extractFirstFromList(transactionReference))))
-
-while ("Bank" in combo_list):
-    combo_list.remove("Bank")
-
-status_combobox = ttk.Combobox(transactionEdit, values=combo_list)
+status_combobox = ttk.Combobox(transactionEdit, values=bank_combo_list)
 
 file_exists = os.path.isfile(TRANSACTION_PATH)
 if not file_exists:
     status_combobox.current(0)
-status_combobox.grid(row=0, column=0, padx=5, pady=5,  sticky="ew")
+status_combobox.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+
+date_entry = ttk.Entry(transactionEdit)
+date_entry.insert(0, "Date")
+date_entry.bind("<FocusIn>", lambda e: date_entry.delete('0', 'end'))
+date_entry.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+
+transaction_entry = ttk.Entry(transactionEdit)
+transaction_entry.insert(0, "Transaction")
+transaction_entry.bind("<FocusIn>", lambda e: transaction_entry.delete('0', 'end'))
+transaction_entry.grid(row=2, column=0, padx=5, pady=10, sticky="ew")
+
+description_entry = ttk.Entry(transactionEdit)
+description_entry.insert(0, "Description")
+description_entry.bind("<FocusIn>", lambda e: description_entry.delete('0', 'end'))
+description_entry.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
+
+category_entry = ttk.Entry(transactionEdit)
+category_entry.insert(0, "Category")
+category_entry.bind("<FocusIn>", lambda e: category_entry.delete('0', 'end'))
+category_entry.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
+
+transactionType_list = ("credit", "debit")
+
+transactionType_entry = ttk.Combobox(transactionEdit, values=transactionType_list)
+transactionType_entry.insert(0, "Transaction Type")
+transactionType_entry.bind("<FocusIn>", lambda e: transactionType_entry.delete('0', 'end'))
+transactionType_entry.grid(row=5, column=0, padx=5, pady=5, sticky="ew")
+
+editConfirm_button = ttk.Button(transactionEdit, text="Edit Transaction")
+editConfirm_button.grid(row=6, column=0, padx=5, pady=5, sticky="nsew")
+
+DeleteConfirm_button = ttk.Button(transactionEdit, text="Delete Transaction")
+DeleteConfirm_button.grid(row=7, column=0, padx=5, pady=5, sticky="nsew")
+
+CreateConfirm_button = ttk.Button(transactionEdit, text="Create Transaction")
+CreateConfirm_button.grid(row=8, column=0, padx=5, pady=5, sticky="nsew")
 
 insert_data = tk.Button(transactionsTable, text="Insert transactions", command=insert_transactions)
 insert_data.grid(row=0, column=0, padx=20, pady=10)
 
-filter_dropdown = tk.Label(transactionsTable, text="Filter Dropdown Here", padx=20, pady=10)
+filter_dropdown = ttk.Combobox(transactionsTable, values=category_combo_list)
 filter_dropdown.grid(row=1, column=0, padx=20, pady=10)
 
 treeFrame = ttk.Frame(transactionsTable)
@@ -243,7 +302,7 @@ treeScroll.pack(side ='right', fill ='y')
 tree = ttk.Treeview(treeFrame, show="headings", height=30, yscrollcommand=treeScroll.set)
 tree.pack(fill="both", expand=True)
 
-refreshTransactionTable(transactionList)
+refreshTransactionTable(transactionReference)
 
 treeScroll.config(command=tree.yview)
  
