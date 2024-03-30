@@ -105,14 +105,8 @@ def process_bank_csv_files(output_filename):
         
         transactionArray.insert(1, "{0},{1},{2},{3},{4},{5}".format(bank,transactionDate,transaction,description,category,transactionType))
         transactionFiller = {'Bank': bank, 'Date': transactionDate, 'Transaction': str(transaction), 'Description': description, 'Category': category, 'transactionType': transactionType}
-        # print(transactionFiller)
-        # print("break")
-        # print(transactionReference)
         if transactionFiller not in transactionReference:
             transactionReference.insert(0, transactionFiller)
-            # print("Record Inserted")
-        # else:
-        #     print("Duplicate Ignored")
     # Remove duplicates
     transactionArray = list(set(transactionArray))
     
@@ -122,8 +116,7 @@ def process_bank_csv_files(output_filename):
         for item in transactionArray:
             splititem = item.split(",")
             writer.writerow([splititem[0], splititem[1], splititem[2], splititem[3], splititem[4], splititem[5]])
-    refreshTransactionTable(transactionReference)
-    # print("Table refreshed")
+    refreshTransactionTable(transactionReference, None)
 
 # Function to sort the Treeview by column
 def sort_treeview(tree, col, descending):
@@ -136,10 +129,8 @@ def sort_treeview(tree, col, descending):
 def transactionFileIntoList(fileName):
     try:
         with open(fileName, 'r', newline='') as f:
-            # reader = csv.reader(f)
             reader = csv.DictReader(f, delimiter=',')
             next(reader, None)
-            # data = [tuple(row) for row in reader]
             data = list(reader)
         return data
     except Exception as e:
@@ -164,11 +155,11 @@ def extractFirstFromList(lst):
 def extractSecondFromList(lst):
     return [item['Category'] for item in lst]
 
-def refreshTransactionTable(transactionList):
-    print(len(transactionList))
-    listCount = ttk.Label(treeFrame, text="Number of Records:\t" + str(len(transactionList)))
-    listCount.pack()
-    # header = next(transactionList)  # Read the header row
+def refreshTransactionTable(transactionList, category):
+    print("Table Refreshed")
+    # Figure out how to update and not create a new one
+    # listCount = ttk.Label(treeFrame, text="Number of Records:\t" + str(len(transactionList)))
+    # listCount.pack()
     header = ("Bank", "Date", "Transaction", "Description", "Category", "Transaction Type")
     tree.delete(*tree.get_children())  # Clear the current data
     for i in tree.get_children():
@@ -179,27 +170,43 @@ def refreshTransactionTable(transactionList):
         tree.heading(col, text=col, command=lambda c=col: sort_treeview(tree, c, False))
         tree.column(col, width=200)
 
-    for row in transactionList:
-        Bank = row['Bank']
-        Date = row['Date']
-        Transaction = row['Transaction']
-        Description = row['Description']
-        Category = row['Category']
-        transactionType = row['transactionType']
-        tree.insert("", "end", values=(Bank, Date, Transaction, Description, Category, transactionType))
+    if category is None:
+        for row in transactionList:
+            Bank = row['Bank']
+            Date = row['Date']
+            Transaction = row['Transaction']
+            Description = row['Description']
+            Category = row['Category']
+            transactionType = row['transactionType']
+            tree.insert("", "end", values=(Bank, Date, Transaction, Description, Category, transactionType))
+            tree.bind("<<TreeviewSelect>>", print_element)
+    if category is not None:
+        for row in transactionList:
+            if category == row['Category']:
+                Bank = row['Bank']
+                Date = row['Date']
+                Transaction = row['Transaction']
+                Description = row['Description']
+                Category = row['Category']
+                transactionType = row['transactionType']
+                tree.insert("", "end", values=(Bank, Date, Transaction, Description, Category, transactionType))
+                tree.bind("<<TreeviewSelect>>", print_element)
 
-# def new_iterable_list(TRANSACTION_PATH):
-#     global transactionList
-#     transactionList = iter(transactionFileIntoList(TRANSACTION_PATH))
+def print_element(event):
+    tree = event.widget
+    selection = [tree.item(item)["text"] for item in tree.selection()]
+    print("selected items:", selection)
+
+def testMethod(one, two):
+    print(one)
+    print(two)
+    # print(two.filter_dropdown.get())
 
 TRANSACTION_PATH = "database/transactions.csv"
 
 create_transactions_file_if_not_exist(TRANSACTION_PATH)
 
 transactionReference = transactionFileIntoList(TRANSACTION_PATH)
-# transactionList = iter(transactionReference)
-
-# transactionIterable = iter(transactionList)
 
 root = tk.Tk()
 transactions = ttk.Frame(root)
@@ -225,7 +232,7 @@ root.title("Hepnerd Transaction Viewer")
 # style.theme_use("forest-dark")
 
 root.geometry("1800x800")
-root.attributes('-zoomed', True)
+# root.attributes('-zoomed', True)
 
 #TODO: 
 # Auto refresh table
@@ -289,20 +296,21 @@ CreateConfirm_button.grid(row=8, column=0, padx=5, pady=5, sticky="nsew")
 insert_data = tk.Button(transactionsTable, text="Insert transactions", command=insert_transactions)
 insert_data.grid(row=0, column=0, padx=20, pady=10)
 
-filter_dropdown = ttk.Combobox(transactionsTable, values=category_combo_list)
+filter_dropdown = ttk.Combobox(transactionsTable, state="readonly", values=category_combo_list)
+# filter_dropdown.bind("<<ComboboxSelected>>", lambda event:testMethod(event, event.widget.get()))
+filter_dropdown.bind("<<ComboboxSelected>>", lambda event:refreshTransactionTable(transactionReference, event.widget.get()))
 filter_dropdown.grid(row=1, column=0, padx=20, pady=10)
 
 treeFrame = ttk.Frame(transactionsTable)
 treeFrame.grid(row=2, column=0, padx=20, pady=20)
 
-# treeScroll = ttk.Scrollbar(treeFrame, orient ="vertical", command = tree.yview)
 treeScroll = ttk.Scrollbar(treeFrame, orient ="vertical")
 treeScroll.pack(side ='right', fill ='y')
 
 tree = ttk.Treeview(treeFrame, show="headings", height=30, yscrollcommand=treeScroll.set)
 tree.pack(fill="both", expand=True)
 
-refreshTransactionTable(transactionReference)
+refreshTransactionTable(transactionReference, None)
 
 treeScroll.config(command=tree.yview)
  
