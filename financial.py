@@ -179,7 +179,8 @@ def refreshTransactionTable(transactionList, category):
             Category = row['Category']
             transactionType = row['transactionType']
             tree.insert("", "end", values=(Bank, Date, Transaction, Description, Category, transactionType))
-            tree.bind("<<TreeviewSelect>>", print_element)
+            # tree.bind("<<TreeviewSelect>>", print_element)
+            tree.bind("<<TreeviewSelect>>", selectItem)
     if category is not None:
         for row in transactionList:
             if category == row['Category']:
@@ -190,12 +191,69 @@ def refreshTransactionTable(transactionList, category):
                 Category = row['Category']
                 transactionType = row['transactionType']
                 tree.insert("", "end", values=(Bank, Date, Transaction, Description, Category, transactionType))
-                tree.bind("<<TreeviewSelect>>", print_element)
+                # tree.bind("<<TreeviewSelect>>", print_element)
+                tree.bind("<<TreeviewSelect>>", selectItem)
 
-def print_element(event):
-    tree = event.widget
-    selection = [tree.item(item)["text"] for item in tree.selection()]
-    print("selected items:", selection)
+def refreshTransactionEdit(bank_combo_list, date, transactionAmount, description, category, transactionType):
+    # print(bank_combo_list, date, transactionAmount, description, category, transactionType)
+    status_combobox = ttk.Combobox(transactionEdit, values=bank_combo_list)
+
+    file_exists = os.path.isfile(TRANSACTION_PATH)
+    if not file_exists:
+        status_combobox.current(0)
+    status_combobox.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+
+    date_entry = ttk.Entry(transactionEdit)
+    date_entry.insert(0, date)
+    # date_entry.bind("<FocusIn>", lambda e: date_entry.delete('0', 'end'))
+    date_entry.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+
+    transaction_entry = ttk.Entry(transactionEdit)
+    transaction_entry.insert(0, transactionAmount)
+    # transaction_entry.bind("<FocusIn>", lambda e: transaction_entry.delete('0', 'end'))
+    transaction_entry.grid(row=2, column=0, padx=5, pady=10, sticky="ew")
+
+    description_entry = tk.Entry(transactionEdit)
+    description_entry.insert(0, description)
+    # description_entry.bind("<FocusIn>", lambda e: description_entry.delete('0', 'end'))
+    description_entry.grid(row=3, column=0, padx=5, pady=10, sticky="ew", columnspan=2)
+
+    category_entry = ttk.Entry(transactionEdit)
+    category_entry.insert(0, category)
+    # category_entry.bind("<FocusIn>", lambda e: category_entry.delete('0', 'end'))
+    category_entry.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
+
+    transactionType_list = ("credit", "debit")
+    if (transactionType == "credit"):
+        transactionTypeNumeric = 0
+    else:
+        transactionTypeNumeric = 1
+
+    # transactionType_entry = ttk.Combobox(transactionEdit, values=transactionType_list)
+    transactionType_entry = ttk.Combobox(transactionEdit, state= "readonly", values=transactionType_list)
+    transactionType_entry.insert(0, transactionType)
+    transactionType_entry.current(transactionTypeNumeric)
+    # transactionType_entry.bind("<FocusIn>", lambda e: transactionType_entry.delete('0', 'end'))
+    transactionType_entry.grid(row=5, column=0, padx=5, pady=5, sticky="ew")
+
+    editConfirm_button = ttk.Button(transactionEdit, text="Update Transaction")
+    editConfirm_button.grid(row=6, column=0, padx=5, pady=5, sticky="nsew")
+
+    DeleteConfirm_button = ttk.Button(transactionEdit, text="Delete Transaction")
+    DeleteConfirm_button.grid(row=7, column=0, padx=5, pady=5, sticky="nsew")
+
+def selectItem(a):
+    curItem = tree.focus()
+    # print(tree.item(curItem)['values'])
+    selectedTransactionList = list(tree.item(curItem)['values'])
+    Bank = selectedTransactionList[0]
+    Date = selectedTransactionList[1]
+    Transaction = selectedTransactionList[2]
+    Description = selectedTransactionList[3]
+    Category = selectedTransactionList[4]
+    transactionType = selectedTransactionList[5]
+    # print(Bank, Date, Transaction, Description, Category, transactionType)
+    refreshTransactionEdit(Bank, Date, "$" + Transaction, Description, Category, transactionType)
 
 def testMethod(one, two):
     print(one)
@@ -246,52 +304,15 @@ root.geometry("1800x800")
 # Settings saved in CSV
 # Budget tracker
 # Fix counter label
+# Bank dropdown in transaction Edit
+# Date picker in transaction Edit
+# Category dropdown in transaction Edit
+
 
 bank_combo_list = (list(set(extractFirstFromList(transactionReference))))
 category_combo_list = (list(set(extractSecondFromList(transactionReference))))
 
-status_combobox = ttk.Combobox(transactionEdit, values=bank_combo_list)
-
-file_exists = os.path.isfile(TRANSACTION_PATH)
-if not file_exists:
-    status_combobox.current(0)
-status_combobox.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
-
-date_entry = ttk.Entry(transactionEdit)
-date_entry.insert(0, "Date")
-date_entry.bind("<FocusIn>", lambda e: date_entry.delete('0', 'end'))
-date_entry.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
-
-transaction_entry = ttk.Entry(transactionEdit)
-transaction_entry.insert(0, "Transaction")
-transaction_entry.bind("<FocusIn>", lambda e: transaction_entry.delete('0', 'end'))
-transaction_entry.grid(row=2, column=0, padx=5, pady=10, sticky="ew")
-
-description_entry = ttk.Entry(transactionEdit)
-description_entry.insert(0, "Description")
-description_entry.bind("<FocusIn>", lambda e: description_entry.delete('0', 'end'))
-description_entry.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
-
-category_entry = ttk.Entry(transactionEdit)
-category_entry.insert(0, "Category")
-category_entry.bind("<FocusIn>", lambda e: category_entry.delete('0', 'end'))
-category_entry.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
-
-transactionType_list = ("credit", "debit")
-
-transactionType_entry = ttk.Combobox(transactionEdit, values=transactionType_list)
-transactionType_entry.insert(0, "Transaction Type")
-transactionType_entry.bind("<FocusIn>", lambda e: transactionType_entry.delete('0', 'end'))
-transactionType_entry.grid(row=5, column=0, padx=5, pady=5, sticky="ew")
-
-editConfirm_button = ttk.Button(transactionEdit, text="Edit Transaction")
-editConfirm_button.grid(row=6, column=0, padx=5, pady=5, sticky="nsew")
-
-DeleteConfirm_button = ttk.Button(transactionEdit, text="Delete Transaction")
-DeleteConfirm_button.grid(row=7, column=0, padx=5, pady=5, sticky="nsew")
-
-CreateConfirm_button = ttk.Button(transactionEdit, text="Create Transaction")
-CreateConfirm_button.grid(row=8, column=0, padx=5, pady=5, sticky="nsew")
+refreshTransactionEdit(bank_combo_list, "Date", "Transaction Amount", "Description", "Category", "Transaction Type")
 
 insert_data = tk.Button(transactionsTable, text="Insert transactions", command=insert_transactions)
 insert_data.grid(row=0, column=0, padx=20, pady=10)
